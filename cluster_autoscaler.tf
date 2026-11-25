@@ -1,10 +1,10 @@
+
 resource "helm_release" "cluster_autoscaler" {
   name             = "cluster-autoscaler"
-  namespace        = "cluster-autoscaler"
-  create_namespace = true
+  namespace        = "kube-system"
+  create_namespace = false
 
-  repository = "https://kubernetes.github.io/autoscaler"
-  chart      = "cluster-autoscaler"
+  chart = "${path.module}/charts/cluster-autoscaler-9.60.0.tgz"
 
   values = [
     yamlencode({
@@ -12,7 +12,7 @@ resource "helm_release" "cluster_autoscaler" {
         clusterName = aws_eks_cluster.pathnex.name
       }
 
-      awsRegion     = "ap-south-1"
+      awsRegion     = var.aws_region
       cloudProvider = "aws"
 
       rbac = {
@@ -25,6 +25,8 @@ resource "helm_release" "cluster_autoscaler" {
   ]
 
   depends_on = [
+    aws_eks_node_group.pathnex-NG,
+    aws_autoscaling_group_tag.cluster_autoscaler,
     aws_eks_pod_identity_association.cluster_autoscaler
   ]
 }

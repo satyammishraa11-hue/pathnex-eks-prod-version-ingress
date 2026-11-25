@@ -1,0 +1,9 @@
+aws_region   = "us-west-2"
+cluster_name = "example-eks"
+
+private_subnet_ids = [
+  "subnet-0123456789abcdef0",
+  "subnet-0fedcba9876543210",
+]
+
+api_public_access_cidrs = ["203.0.113.10/32"]

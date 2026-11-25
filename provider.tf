@@ -1,3 +1,4 @@
+
 terraform {
   required_version = ">= 1.5.0"
 
@@ -6,9 +7,15 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
+
     kubernetes = {
       source  = "hashicorp/kubernetes"
       version = "~> 3.2"
+    }
+
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 3.0"
     }
   }
 }
@@ -18,16 +25,23 @@ provider "aws" {
 }
 
 provider "kubernetes" {
-  host                   = aws_eks_cluster.pathnex.endpoint
-  cluster_ca_certificate = base64decode(aws_eks_cluster.pathnex.certificate_authority[0].data)
+  host = aws_eks_cluster.pathnex.endpoint
+
+  cluster_ca_certificate = base64decode(
+    aws_eks_cluster.pathnex.certificate_authority[0].data
+  )
 
   exec {
     api_version = "client.authentication.k8s.io/v1beta1"
     command     = "aws"
+
     args = [
-      "eks", "get-token",
-      "--cluster-name", aws_eks_cluster.pathnex.name,
-      "--region", var.aws_region
+      "eks",
+      "get-token",
+      "--cluster-name",
+      aws_eks_cluster.pathnex.name,
+      "--region",
+      var.aws_region
     ]
   }
 }
@@ -35,6 +49,7 @@ provider "kubernetes" {
 provider "helm" {
   kubernetes = {
     host = aws_eks_cluster.pathnex.endpoint
+
     cluster_ca_certificate = base64decode(
       aws_eks_cluster.pathnex.certificate_authority[0].data
     )
@@ -49,7 +64,7 @@ provider "helm" {
         "--cluster-name",
         aws_eks_cluster.pathnex.name,
         "--region",
-        "ap-south-1"
+        var.aws_region
       ]
     }
   }

@@ -1,70 +1,57 @@
-resource "aws_eks_addon" "ebs_csi" {
-  cluster_name  = aws_eks_cluster.pathnex.name
-  addon_name    = "aws-ebs-csi-driver"
-  addon_version = "v1.63.1-eksbuild.1"
+# Core EKS add-ons. AWS selects a default version compatible with the cluster.
+# Check supported versions before applying; defaults are not necessarily the latest.
+resource "aws_eks_addon" "vpc_cni" {
+  cluster_name = aws_eks_cluster.pathnex.name
+  addon_name   = "vpc-cni"
+  depends_on   = [aws_eks_cluster.pathnex]
+}
 
-  depends_on = [
-    aws_iam_role_policy_attachment.ebs_csi,
-    aws_eks_cluster.pathnex,
-    aws_eks_addon.pod_identity,
-    helm_release.cluster_autoscaler
-  ]
+resource "aws_eks_addon" "kube_proxy" {
+  cluster_name = aws_eks_cluster.pathnex.name
+  addon_name   = "kube-proxy"
+  depends_on   = [aws_eks_cluster.pathnex]
 }
 
 resource "aws_eks_addon" "coredns" {
-  cluster_name  = aws_eks_cluster.pathnex.name
-  addon_name    = "coredns"
-  addon_version = "v1.13.2-eksbuild.1"
-  depends_on = [aws_eks_cluster.pathnex,
-    helm_release.cluster_autoscaler
+  cluster_name = aws_eks_cluster.pathnex.name
+  addon_name   = "coredns"
+  depends_on   = [aws_eks_node_group.pathnex-NG]
+}
+
+resource "aws_eks_addon" "pod_identity" {
+  cluster_name = aws_eks_cluster.pathnex.name
+  addon_name   = "eks-pod-identity-agent"
+  depends_on   = [aws_eks_node_group.pathnex-NG]
+}
+
+resource "aws_eks_addon" "ebs_csi" {
+  cluster_name = aws_eks_cluster.pathnex.name
+  addon_name   = "aws-ebs-csi-driver"
+  depends_on = [
+    aws_eks_node_group.pathnex-NG,
+    aws_eks_addon.pod_identity,
+    aws_eks_pod_identity_association.ebs_csi
   ]
 }
 
 resource "aws_eks_addon" "node_monitoring" {
-  cluster_name  = aws_eks_cluster.pathnex.name
-  addon_name    = "eks-node-monitoring-agent"
-  addon_version = "v1.7.0-eksbuild.1"
-  depends_on = [aws_eks_cluster.pathnex,
-  helm_release.cluster_autoscaler]
-}
-
-resource "aws_eks_addon" "pod_identity" {
-  cluster_name  = aws_eks_cluster.pathnex.name
-  addon_name    = "eks-pod-identity-agent"
-  addon_version = "v1.3.10-eksbuild.3"
-  depends_on    = [aws_eks_cluster.pathnex]
-}
-
-resource "aws_eks_addon" "external_dns" {
-  cluster_name  = aws_eks_cluster.pathnex.name
-  addon_name    = "external-dns"
-  addon_version = "v0.21.0-eksbuild.6"
-  depends_on = [aws_eks_cluster.pathnex,
-  helm_release.cluster_autoscaler]
-}
-
-resource "aws_eks_addon" "kube_proxy" {
-  cluster_name  = aws_eks_cluster.pathnex.name
-  addon_name    = "kube-proxy"
-  addon_version = "v1.34.3-eksbuild.2"
-  depends_on = [aws_eks_cluster.pathnex,
-  helm_release.cluster_autoscaler]
+  cluster_name = aws_eks_cluster.pathnex.name
+  addon_name   = "eks-node-monitoring-agent"
+  depends_on   = [aws_eks_node_group.pathnex-NG]
 }
 
 resource "aws_eks_addon" "metrics_server" {
-  cluster_name  = aws_eks_cluster.pathnex.name
-  addon_name    = "metrics-server"
-  addon_version = "v0.9.0-eksbuild.5"
-  depends_on = [aws_eks_cluster.pathnex,
-  helm_release.cluster_autoscaler]
+  cluster_name = aws_eks_cluster.pathnex.name
+  addon_name   = "metrics-server"
+  depends_on   = [aws_eks_node_group.pathnex-NG]
 }
 
-resource "aws_eks_addon" "vpc_cni" {
-  cluster_name  = aws_eks_cluster.pathnex.name
-  addon_name    = "vpc-cni"
-  addon_version = "v1.22.4-eksbuild.3"
-  depends_on = [aws_eks_cluster.pathnex,
-  helm_release.cluster_autoscaler]
+# ExternalDNS also needs AWS DNS permissions if used with Route 53.
+# Its workload IAM permissions are not configured in this file.
+resource "aws_eks_addon" "external_dns" {
+  cluster_name = aws_eks_cluster.pathnex.name
+  addon_name   = "external-dns"
+  depends_on   = [aws_eks_node_group.pathnex-NG]
 }
 
 resource "helm_release" "keda" {
@@ -77,7 +64,7 @@ resource "helm_release" "keda" {
   create_namespace = true
 
   depends_on = [
-    aws_eks_cluster.pathnex,
+    aws_eks_node_group.pathnex-NG,
     aws_eks_addon.pod_identity
   ]
 }
@@ -94,7 +81,7 @@ resource "helm_release" "istio_base" {
   create_namespace = true
 
   depends_on = [
-    aws_eks_cluster.pathnex
+    aws_eks_node_group.pathnex-NG
   ]
 }
 
@@ -465,7 +452,7 @@ resource "helm_release" "karpenter" {
   ]
 
   depends_on = [
-    aws_eks_cluster.pathnex,
-    aws_eks_addon.pod_identity
+    aws_eks_node_group.pathnex-NG,
+    aws_eks_pod_identity_association.karpenter
   ]
 }

@@ -106,7 +106,7 @@ resource "aws_iam_policy" "cluster_autoscaler" {
           StringEquals = {
             "aws:ResourceTag/k8s.io/cluster-autoscaler/enabled" = "true"
 
-            "aws:ResourceTag/k8s.io/cluster-autoscaler/Pathnex-oct-2026" = "owned"
+            "aws:ResourceTag/k8s.io/cluster-autoscaler/${aws_eks_cluster.pathnex.name}" = "owned"
           }
         }
       }
@@ -125,7 +125,7 @@ resource "aws_iam_role_policy_attachment" "cluster_autoscaler" {
 # Give the Kubernetes ServiceAccount this IAM role
 resource "aws_eks_pod_identity_association" "cluster_autoscaler" {
   cluster_name    = aws_eks_cluster.pathnex.name
-  namespace       = "cluster-autoscaler"
+  namespace       = "kube-system"
   service_account = "cluster-autoscaler"
   role_arn        = aws_iam_role.cluster_autoscaler.arn
 

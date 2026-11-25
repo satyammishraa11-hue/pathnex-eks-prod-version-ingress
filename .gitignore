@@ -1,2 +1,6 @@
 terraform.tfstate*
-.terraform*
+.terraform/
+*.tfplan
+terraform-state-backup*.json
+terraform.tfvars
+*.auto.tfvars
